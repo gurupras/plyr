@@ -1652,7 +1652,7 @@
             else if (typeof input === 'object' && (input.type === 'input' || input.type === 'change')) {
                 // It's the seek slider
                 // Seek to the selected time
-                targetTime = ((input.target.value / input.target.max) * plyr.media.duration);
+                targetTime = _getTargetTime(input);
             }
 
             // Normalise targetTime
@@ -1700,6 +1700,10 @@
 
             // Special handling for 'manual' captions
             _seekManualCaptions(targetTime);
+        }
+
+        function _getTargetTime(input) {
+            var targetTime = ((input.target.value / input.target.max) * plyr.media.duration);
         }
 
         // Check playing state
