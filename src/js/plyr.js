@@ -1702,10 +1702,6 @@
             _seekManualCaptions(targetTime);
         }
 
-        function _getTargetTime(input) {
-            var targetTime = ((input.target.value / input.target.max) * plyr.media.duration);
-        }
-
         // Check playing state
         function _checkPlaying() {
             _toggleClass(plyr.container, config.classes.playing, !plyr.media.paused);
@@ -2274,6 +2270,10 @@
             }
         }
 
+        function _media() {
+            return plyr.media;
+        }
+
         // Update poster
         function _updatePoster(source) {
             if (plyr.type === 'video') {
@@ -2395,7 +2395,7 @@
 
             if (config.fullscreen.hideControls) {
                 // Keep an eye on the mouse location in relation to controls
-                _on(plyr.controls, 'mouseenter mouseleave', function() {
+                _on(plyr.controls, 'mouseenter mouseleave', function(event) {
                     plyr.controls.mouseover = (event.type === 'mouseenter');
                 });
             }
@@ -2645,7 +2645,7 @@
         }
 
         return {
-            media:              plyr.media,
+            media:              _media,
             play:               _play,
             pause:              _pause,
             restart:            _seek,
@@ -2763,6 +2763,16 @@
 
     return api;
 }));
+
+function _getTargetTime(plyr, input) {
+    if (typeof input === 'object' && (input.type === 'input' || input.type === 'change')) {
+        return ((input.target.value / input.target.max) * plyr.media().duration);
+    }
+    else {
+        // We're assuming its a number
+        return Number(input);
+    }
+}
 
 // Custom event polyfill
 // https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
