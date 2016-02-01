@@ -2155,11 +2155,14 @@
             // Clean up YouTube stuff
             if (plyr.type === 'youtube') {
                 // Destroy the embed instance
-                plyr.embed.destroy();
-
-                // Clear timer
-                window.clearInterval(plyr.timer.buffering);
-                window.clearInterval(plyr.timer.playing);
+                try {
+                    plyr.embed.destroy();
+                    // Clear timer
+                    window.clearInterval(plyr.timer.buffering);
+                    window.clearInterval(plyr.timer.playing);
+                } catch(e) {
+                    console.log("Failed to destroy plyr.embed: " + e.msg);
+                }
             }
             else if (plyr.type === 'video' && plyr.videoContainer) {
                 // Remove video wrapper
