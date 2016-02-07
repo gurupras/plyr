@@ -2651,6 +2651,7 @@
         }
 
         return {
+            container:          plyr.container,
             media:              _media,
             play:               _play,
             pause:              _pause,
