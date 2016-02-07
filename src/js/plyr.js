@@ -1271,6 +1271,9 @@
 
                         // Display duration if available
                         _displayDuration();
+                        
+                        // Trigger an external event that users can listen for
+                        _triggerEvent(plyr.container, 'player-ready');
                     },
                     'onStateChange': function(event) {
                         // Get the instance
