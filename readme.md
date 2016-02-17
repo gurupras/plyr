@@ -40,7 +40,7 @@ If you have any cool ideas or features, please let me know by [creating an issue
 
 Check `docs/index.html` and `docs/dist/docs.js` for an example setup.
 
-**Heads up:** the example `index.html` file needs to be served from a webserver (such as Apache, Nginx, IIS or similar) unless you change the file sources to include http or https. e.g. change `//cdn.plyr.io/1.5.9/plyr.js` to `https://cdn.plyr.io/1.5.9/plyr.js`
+**Heads up:** the example `index.html` file needs to be served from a webserver (such as Apache, Nginx, IIS or similar) unless you change the file sources to include http or https. e.g. change `//cdn.plyr.io/1.5.11/plyr.js` to `https://cdn.plyr.io/1.5.11/plyr.js`
 
 ### Node Package Manager (NPM)
 Using NPM, you can grab Plyr:
@@ -69,11 +69,11 @@ More info is on [npm](https://www.npmjs.com/package/ember-cli-plyr) and [GitHub]
 If you want to use our CDN, you can use the following:
 
 ```html
-<link rel="stylesheet" href="https://cdn.plyr.io/1.5.9/plyr.css">
-<script src="https://cdn.plyr.io/1.5.9/plyr.js"></script>
+<link rel="stylesheet" href="https://cdn.plyr.io/1.5.11/plyr.css">
+<script src="https://cdn.plyr.io/1.5.11/plyr.js"></script>
 ```
 
-You can also access the `sprite.svg` file at `https://cdn.plyr.io/1.5.9/sprite.svg`.
+You can also access the `sprite.svg` file at `https://cdn.plyr.io/1.5.11/sprite.svg`.
 
 ### CSS & Styling
 If you want to use the default css, add the `plyr.css` file from `/dist` into your head, or even better use `plyr.less` or `plyr.sass` file included in `/src` in your build to save a request.
@@ -105,7 +105,7 @@ The SVG sprite for the controls icons is loaded in by AJAX to help with performa
 ```
 
 If you're using the `<base>` tag on your site, you may need to use something like this:
-[https://gist.github.com/leonderijke/c5cf7c5b2e424c0061d2](svgfixer.js)
+[svgfixer.js](https://gist.github.com/leonderijke/c5cf7c5b2e424c0061d2)
 
 More info on SVG sprites here:
 [http://css-tricks.com/svg-sprites-use-better-icon-fonts/](http://css-tricks.com/svg-sprites-use-better-icon-fonts/)
@@ -170,7 +170,7 @@ More info on CORS here:
 Here's an example of a default setup:
 
 ```html
-<script src="https://cdn.plyr.io/1.5.9/plyr.js"></script>
+<script src="https://cdn.plyr.io/1.5.11/plyr.js"></script>
 <script>plyr.setup();</script>
 ```
 
@@ -247,6 +247,12 @@ Options must be passed as an object to the `setup()` method as above.
     <td>Boolean</td>
     <td><code>false</code></td>
     <td>Display debugging information on what Plyr is doing.</td>
+  </tr>
+  <tr>
+    <td><code>autoplay</code></td>
+    <td>Boolean</td>
+    <td><code>false</code></td>
+    <td>Autoplay the media on load. This is generally advised against on UX grounds. It is also disabled on iOS (an Apple limitation).</td>
   </tr>
   <tr>
     <td><code>seekTime</code></td>
@@ -463,16 +469,23 @@ Here's a list of the methods supported:
   </tr>
   <tr>
     <td><code>source(...)</code></td>
-    <td>Array or undefined</td>
+    <td>Object or undefined</td>
     <td>
       Get/Set the media source.
       <br><br>
-      <strong>string</strong><br>
-      <code>.source("/path/to/video.mp4")</code><br>
-      This will set the <code>src</code> attribute on the <code>video</code> or <code>audio</code> element.
-      <br><br>
       <strong>array</strong><br>
-      <code>.source([{ src: "/path/to/video.webm", type: "video/webm", ...more attributes... }, { src: "/path/to/video.mp4", type: "video/mp4", ...more attributes... }])`</code><br>
+      <pre><code>.source([
+      	{ 
+      		src: "/path/to/video.webm", 
+      		type: "video/webm", 
+      		...more attributes... 
+      	}, 
+      	{ 
+      		src: "/path/to/video.mp4", 
+      		type: "video/mp4", 
+      		...more attributes... 
+      	}
+      ])`</code></pre><br>
       This will inject a child `source` element for every element in the array with the specified attributes. `src` is the only required attribute although adding `type` is recommended as it helps the browser decide which file to download and play.
       <br><br>
       <strong>YouTube</strong><br>
@@ -595,8 +608,8 @@ Some more details on the object parameters
     </tr>
     <tr>
       <td><code>sources</code></td>
-      <td>Array or String</td>
-      <td>This is an array of sources or optionally a string for embedded players (YouTube and Vimeo). `type` is also optional for YouTube and Vimeo when specifying an array. For YouTube and Vimeo media, only the video ID must be passed as the source as shown above. The keys of this object are mapped directly to HTML attributes so more can be added to the object if required.</td>
+      <td>Array</td>
+      <td>This is an array of sources. <code>type</code> is optional for YouTube and Vimeo when specifying an array. For YouTube and Vimeo media, only the video ID must be passed as the source as shown above. The keys of this object are mapped directly to HTML attributes so more can be added to the object if required.</td>
     </tr>
     <tr>
       <td><code>poster</code></td>
@@ -818,6 +831,7 @@ Plyr is developed by [@sam_potts](https://twitter.com/sam_potts) / [sampotts.me]
 
 ## Used by
 - [Selz.com](https://selz.com)
+- [koel](https://github.com/phanan/koel) - A personal music streaming server that works
 
 Let me know on [Twitter](https://twitter.com/sam_potts) I can add you to the above list. It'd be awesome to see how you're using Plyr :-)
 

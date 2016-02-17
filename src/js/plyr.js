@@ -172,7 +172,7 @@
 
         // Seek tooltip
         if (config.tooltips.seek) {
-            html.push('<span class="plyr__tooltip">0:00</span>');
+            html.push('<span class="plyr__tooltip">--:--</span>');
         }
 
         // Close progress
@@ -238,7 +238,7 @@
             html.push(
                 '<span class="plyr__time">',
                     '<span class="plyr__sr-only">' + config.i18n.duration + '</span>',
-                    '<span class="plyr__time--duration">00:00</span>',
+                    '<span class="plyr__time--duration">--:--</span>',
                 '</span>'
             );
         }
@@ -746,7 +746,7 @@
     // Player instance
     function Plyr(container) {
         var plyr = this;
-        plyr.container = container,
+        plyr.container = container;
         plyr.timers = {};
 
         // Captions functions
@@ -820,15 +820,21 @@
         }
 
         // Utilities for caption time codes
-        function _timecodeMin(tc) {
+        function _timecodeCommon(tc, pos) {
             var tcpair = [];
             tcpair = tc.split(' --> ');
-            return _subTcSecs(tcpair[0]);
+            for(var i = 0; i < tcpair.length; i++) {
+                // WebVTT allows for extra meta data after the timestamp line
+                // So get rid of this if it exists
+                tcpair[i] = tcpair[i].replace(/(\d+:\d+:\d+\.\d+).*/, "$1");
+            }
+            return _subTcSecs(tcpair[pos]);
+        }
+        function _timecodeMin(tc) {
+            return _timecodeCommon(tc, 0);
         }
         function _timecodeMax(tc) {
-            var tcpair = [];
-            tcpair = tc.split(' --> ');
-            return _subTcSecs(tcpair[1]);
+            return _timecodeCommon(tc, 1);
         }
         function _subTcSecs(tc) {
             if (tc === null || tc === undefined) {
@@ -1520,12 +1526,18 @@
                                         record,
                                         req = xhr.responseText;
 
-                                    records = req.split('\n\n');
-
+                                    var pattern = '\n';
+                                    records = req.split(pattern + pattern);
+                                    if(records.length === 1) {
+                                        // The '\n' pattern didn't work
+                                        // Try '\r\n'
+                                        pattern = '\r\n';
+                                        records = req.split(pattern + pattern);
+                                    }
                                     for (var r = 0; r < records.length; r++) {
                                         record = records[r];
                                         plyr.captions[r] = [];
-                                        plyr.captions[r] = record.split('\n');
+                                        plyr.captions[r] = record.split(pattern);
                                     }
 
                                     // Remove first element ('VTT')
@@ -1819,12 +1831,16 @@
         function _setVolume(volume) {
             // Use default if no value specified
             if (typeof volume === 'undefined') {
+                volume = config.volume;
+
                 if (config.storage.enabled && _storage().supported) {
-                    volume = window.localStorage[config.storage.key] || config.volume;
+                    volume = window.localStorage.getItem(config.storage.key);
                 }
-                else {
-                    volume = config.volume;
-                }
+            }
+
+            // Use config if all else fails
+            if(isNaN(volume)) {
+                volume = config.volume;
             }
 
             // Maximum is 10
@@ -1876,7 +1892,7 @@
             }
 
             // Store the volume in storage
-            if (config.storage.enabled && _storage().supported) {
+            if (config.storage.enabled && _storage().supported && !isNaN(volume)) {
                 window.localStorage.setItem(config.storage.key, volume);
             }
 
@@ -2018,6 +2034,7 @@
                 return;
             }
 
+            // Determine duration
             var duration = plyr.media.duration || 0;
 
             // If there's only one time display, display duration there
