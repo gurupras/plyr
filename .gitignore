@@ -6,3 +6,6 @@ aws.json
 docs/index.dev.html
 *.mp4
 notes.txt
+
+/dist/srcmap
+/docs/dist/srcmap

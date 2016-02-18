@@ -23,6 +23,7 @@ var fs          = require("fs"),
     replace     = require("gulp-replace"),
     open        = require("gulp-open"),
     size        = require("gulp-size");
+    sourcemaps  = require("gulp-sourcemaps");
 
 var root = __dirname,
 paths = {
@@ -84,8 +85,10 @@ var build = {
                 gulp.task(name, function () {
                     return gulp
                         .src(bundles[bundle].js[key])
+                        .pipe(sourcemaps.init())
                         .pipe(concat(key))
                         .pipe(uglify())
+                        .pipe(sourcemaps.write('srcmap'))
                         .pipe(gulp.dest(paths[bundle].output));
                 });
             })(key);
