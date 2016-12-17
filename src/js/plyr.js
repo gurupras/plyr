@@ -2666,7 +2666,7 @@
                     break;
 
                 case 'vimeo':
-                    plyr.embed.getVideoUrl.then(function (value) {
+                    plyr.embed.getVideoUrl().then(function (value) {
                         url = value;
                     });
                     break;
