@@ -30,13 +30,23 @@ Oh and yes, it works with Bootstrap.
 ## Changelog
 Check out the [changelog](changelog.md) to see what's new with Plyr.
 
-## Planned Development
-- Playback speed
-- Quality selection
+## Features currently being developed
+- Playback speed selection
+- Quality selection 
+- Caption language selection
+- AirPlay
+- Picture in Picture (MacOS Sierra + Safari)
+
+[more info](https://github.com/Selz/plyr/issues?q=is%3Aissue+is%3Aopen+label%3A%22In+Development%22)
+
+## Planned features
 - Playlists
-- Multiple language captions (with selection)
+- Google cast
+- Facebook video support
+- Wistia video support
+- YouTube and Vimeo audio support
 - Audio captions
-... and whatever else has been raised in [issues](https://github.com/Selz/plyr/issues)
+...and whatever else has been raised in [issues](https://github.com/Selz/plyr/issues)
 
 If you have any cool ideas or features, please let me know by [creating an issue](https://github.com/Selz/plyr/issues/new) or, of course, forking and sending a pull request.
 
@@ -106,10 +116,13 @@ For YouTube and Vimeo, Plyr uses the standard YouTube API markup (an empty `<div
 <div data-type="youtube" data-video-id="bTqVqk7FSmY"></div>
 ```
 
+Note: `data-video-id` value can now be the ID or URL for the video. This attribute name will change in a future release to reflect this change.
+
 #### Vimeo embed
 ```html
 <div data-type="vimeo" data-video-id="143418951"></div>
 ```
+Note: `data-video-id` value can now be the ID or URL for the video. This attribute name will change in a future release to reflect this change.
 
 ### JavaScript 
 Include the `plyr.js` script before the closing `</body>` tag and then call `plyr.setup()`. More info on `setup()` can be found under [initialising](#initialising).
@@ -119,10 +132,10 @@ Include the `plyr.js` script before the closing `</body>` tag and then call `ply
 <script>plyr.setup();</script>
 ```
 
-If you want to use our CDN for the JavaScript, you can use the following:
+If you want to use our CDN (provided by [Fastly](https://www.fastly.com/)) for the JavaScript, you can use the following:
 
 ```html
-<script src="https://cdn.plyr.io/2.0.7/plyr.js"></script>
+<script src="https://cdn.plyr.io/2.0.11/plyr.js"></script>
 ```
 
 ### CSS
@@ -132,14 +145,14 @@ Include the `plyr.css` stylsheet into your `<head>`
 <link rel="stylesheet" href="path/to/plyr.css">
 ```
 
-If you want to use our CDN for the default CSS, you can use the following:
+If you want to use our CDN (provided by [Fastly](https://www.fastly.com/)) for the default CSS, you can use the following:
 
 ```html
-<link rel="stylesheet" href="https://cdn.plyr.io/2.0.7/plyr.css">
+<link rel="stylesheet" href="https://cdn.plyr.io/2.0.11/plyr.css">
 ```
 
 ### SVG Sprite
-The SVG sprite is loaded automatically from our CDN. To change this, see the [options](#Options) below. For reference, the CDN hosted SVG sprite can be found at `https://cdn.plyr.io/2.0.7/plyr.svg`.
+The SVG sprite is loaded automatically from our CDN (provided by [Fastly](https://www.fastly.com/)). To change this, see the [options](#Options) below. For reference, the CDN hosted SVG sprite can be found at `https://cdn.plyr.io/2.0.11/plyr.svg`.
 
 ## Advanced
 
@@ -492,7 +505,7 @@ Here's a list of the methods supported:
   <tr>
     <td><code>on()</code></td>
     <td>String, Function</td>
-    <td>Watch for an event (first argument) and run a callback function (second argument). This saves you doing your own <code>addEventListner</code> code.</td>
+    <td>Watch for an event (first argument) and run a callback function (second argument). This saves you doing your own <code>addEventListner</code> code. This is chainable.</td>
   </tr>
   <tr>
     <td><code>play()</code></td>
@@ -558,6 +571,11 @@ Here's a list of the methods supported:
     <td><code>togglePlay()</code></td>
     <td>Boolean</td>
     <td>Toggles playback for the player based on either the boolean argument or it's current state.</td>
+  </tr>
+  <tr>
+    <td><code>isPaused()</code></td>
+    <td>&mdash;</td>
+    <td>Will return a boolean for whether the media is currently paused.</td>
   </tr>
   <tr>
     <td><code>toggleMute()</code></td>
@@ -671,6 +689,8 @@ player.source({
 });
 ```
 
+Note: `src` can be the video ID or URL
+
 Vimeo example
 
 ```javascript
@@ -684,7 +704,9 @@ player.source({
 });
 ```
 
-Some more details on the object parameters
+Note: `src` can be the video ID or URL
+
+More details on the object parameters
 
 <table class="table" width="100%">
   <thead>
@@ -708,7 +730,7 @@ Some more details on the object parameters
     <tr>
       <td><code>sources</code></td>
       <td>Array</td>
-      <td>This is an array of sources. <code>type</code> is optional for YouTube and Vimeo when specifying an array. For YouTube and Vimeo media, only the video ID must be passed as the source as shown above. The keys of this object are mapped directly to HTML attributes so more can be added to the object if required.</td>
+      <td>This is an array of sources. <code>type</code> is optional for YouTube and Vimeo when specifying an array. For YouTube and Vimeo media, the video ID or URL must be passed as the source as shown above. The keys of this object are mapped directly to HTML attributes so more can be added to the object if required.</td>
     </tr>
     <tr>
       <td><code>poster</code></td>
@@ -771,7 +793,7 @@ These events also bubble up the DOM. The event target will be the container elem
   	<tr>
   		<td><code>ended</code></td>
   		<td></td>
-  		<td>Sent when playback completes.</td>
+  		<td>Sent when playback completes. Note: with Vimeo this does not occur if `loop` is enabled.</td>
   	</tr>
   	<tr>
   		<td><code>error</code></td>
@@ -815,12 +837,12 @@ These events also bubble up the DOM. The event target will be the container elem
   	</tr>
   	<tr>
   		<td><code>seeked</code></td>
-  		<td>✔</td>
+  		<td></td>
   		<td>Sent when a seek operation completes.</td>
   	</tr>
   	<tr>
   		<td><code>seeking</code></td>
-  		<td>✔</td>
+  		<td></td>
   		<td>Sent when a seek operation begins.</td>
   	</tr>
   	<tr>
@@ -1044,6 +1066,8 @@ Credit to the PayPal HTML5 Video player from which Plyr's caption functionality 
 Also these links helped created Plyr:
 - [Media Events - W3.org](http://www.w3.org/2010/05/video/mediaevents.html)
 - [Styling the `<progress>` element - hongkiat.com](http://www.hongkiat.com/blog/html5-progress-bar/)
+
+Thanks to [Fastly](https://www.fastly.com/) for providing the CDN services. 
 
 ## Copyright and License
 [The MIT license](license.md).

@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr
-// plyr.js v2.0.7
+// plyr.js v2.0.11
 // https://github.com/selz/plyr
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -43,7 +43,7 @@
         displayDuration:        true,
         loadSprite:             true,
         iconPrefix:             'plyr',
-        iconUrl:                'https://cdn.plyr.io/2.0.7/plyr.svg',
+        iconUrl:                'https://cdn.plyr.io/2.0.11/plyr.svg',
         clickToPlay:            true,
         hideControls:           true,
         showPosterOnEnd:        false,
@@ -175,7 +175,7 @@
             fullscreen:         null
         },
         // Events to watch on HTML5 media elements
-        events:                 ['ready', 'ended', 'progress', 'stalled', 'playing', 'waiting', 'canplay', 'canplaythrough', 'loadstart', 'loadeddata', 'loadedmetadata', 'timeupdate', 'volumechange', 'play', 'pause', 'error', 'seeking', 'emptied'],
+        events:                 ['ready', 'ended', 'progress', 'stalled', 'playing', 'waiting', 'canplay', 'canplaythrough', 'loadstart', 'loadeddata', 'loadedmetadata', 'timeupdate', 'volumechange', 'play', 'pause', 'error', 'seeking', 'seeked', 'emptied'],
         // Logging
         logPrefix:              '[Plyr]'
     };
@@ -257,6 +257,7 @@
             isChrome:   isChrome,
             isSafari:   isSafari,
             isIos:      /(iPad|iPhone|iPod)/g.test(navigator.platform),
+            isIphone:   /(iPhone|iPod)/g.test(navigator.userAgent),
             isTouch:    'ontouchstart' in document.documentElement
         };
     }
@@ -595,6 +596,18 @@
             return input !== null && typeof input === 'undefined';
         }
     };
+
+    // Parse YouTube ID from url
+    function _parseYouTubeId(url) {
+        var regex = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        return (url.match(regex)) ? RegExp.$2 : url;
+    }
+
+    // Parse Vimeo ID from url
+    function _parseVimeoId(url) {
+        var regex = /^.*(vimeo.com\/|video\/)(\d+).*/;
+        return (url.match(regex)) ? RegExp.$2 : url;
+    }
 
     // Fullscreen API
     function _fullscreen() {
@@ -1026,14 +1039,25 @@
                                         caption,
                                         req = xhr.responseText;
 
-                                    captions = req.split('\n\n');
+                                    //According to webvtt spec, line terminator consists of one of the following
+                                    // CRLF (U+000D U+000A), LF (U+000A) or CR (U+000D)
+                                    var lineSeparator = '\r\n';
+                                    if(req.indexOf(lineSeparator+lineSeparator) === -1) {
+                                        if(req.indexOf('\r\r') !== -1){
+                                            lineSeparator = '\r';
+                                        } else {
+                                            lineSeparator = '\n';
+                                        }
+                                    }
+
+                                    captions = req.split(lineSeparator+lineSeparator);
 
                                     for (var r = 0; r < captions.length; r++) {
                                         caption = captions[r];
                                         plyr.captions[r] = [];
 
                                         // Get the parts of the captions
-                                        var parts = caption.split('\n'),
+                                        var parts = caption.split(lineSeparator),
                                             index = 0;
 
                                         // Incase caption numbers are added
@@ -1494,8 +1518,22 @@
         // Setup YouTube/Vimeo
         function _setupEmbed() {
             var container = document.createElement('div'),
-                mediaId = plyr.embedId,
+                mediaId,
                 id = plyr.type + '-' + Math.floor(Math.random() * (10000));
+
+            // Parse IDs from URLs if supplied
+            switch (plyr.type) {
+                case 'youtube':
+                    mediaId = _parseYouTubeId(plyr.embedId);
+                    break;
+
+                case 'vimeo':
+                    mediaId = _parseVimeoId(plyr.embedId);
+                    break;
+
+                default:
+                    mediaId = plyr.embedId;
+            }
 
             // Remove old containers
             var containers = _getElements('[id^="' + plyr.type + '-"]');
@@ -1713,6 +1751,12 @@
 
                             case 1:
                                 plyr.media.paused = false;
+
+                                // If we were seeking, fire seeked event
+                                if (plyr.media.seeking) {
+                                    _triggerEvent(plyr.media, 'seeked');
+                                }
+
                                 plyr.media.seeking = false;
                                 _triggerEvent(plyr.media, 'play');
                                 _triggerEvent(plyr.media, 'playing');
@@ -1725,6 +1769,14 @@
                                     // Trigger timeupdate
                                     _triggerEvent(plyr.media, 'timeupdate');
                                 }, 100);
+
+                                // Check duration again due to YouTube bug
+                                // https://github.com/Selz/plyr/issues/374
+                                // https://code.google.com/p/gdata-issues/issues/detail?id=8690
+                                if (plyr.media.duration !== instance.getDuration()) {
+                                    plyr.media.duration = instance.getDuration();
+                                    _triggerEvent(plyr.media, 'durationchange');
+                                }
 
                                 break;
 
@@ -1827,6 +1879,12 @@
                     // Trigger event
                     _triggerEvent(plyr.media, 'canplaythrough');
                 }
+            });
+
+            plyr.embed.on('seeked', function() {
+                plyr.media.seeking = false;
+                _triggerEvent(plyr.media, 'seeked');
+                _triggerEvent(plyr.media, 'play');
             });
 
             plyr.embed.on('ended', function() {
@@ -1990,7 +2048,6 @@
 
             // Embeds
             if (_inArray(config.types.embed, plyr.type)) {
-                // YouTube
                 switch(plyr.type) {
                     case 'youtube':
                         plyr.embed.seekTo(targetTime);
@@ -2010,11 +2067,14 @@
                     _pause();
                 }
 
-                // Trigger timeupdate for embeds
+                // Trigger timeupdate
                 _triggerEvent(plyr.media, 'timeupdate');
 
                 // Set seeking flag
                 plyr.media.seeking = true;
+
+                // Trigger seeking
+                _triggerEvent(plyr.media, 'seeking');
             }
 
             // Logging
@@ -3202,7 +3262,7 @@
                     plyr.embed.unload().then(cleanUp);
 
                     // Vimeo does not always return
-                    window.setTimeout(cleanUp, 200);
+                    timers.cleanUp = window.setTimeout(cleanUp, 200);
 
                     break;
 
@@ -3218,6 +3278,8 @@
             }
 
             function cleanUp() {
+                clearTimeout(timers.cleanUp);
+
                 // Default to restore original element
                 if (!_is.boolean(restore)) {
                     restore = true;
@@ -3238,6 +3300,9 @@
 
                 // Replace the container with the original element provided
                 plyr.container.parentNode.replaceChild(original, plyr.container);
+
+                // Allow overflow (set on fullscreen)
+                document.body.style.overflow = '';
 
                 // Event
                 _triggerEvent(original, 'destroyed', true);
@@ -3393,7 +3458,8 @@
             isMuted:            function() { return plyr.media.muted; },
             isReady:            function() { return _hasClass(plyr.container, config.classes.ready); },
             isLoading:          function() { return _hasClass(plyr.container, config.classes.loading); },
-            on:                 function(event, callback) { _on(plyr.container, event, callback); },
+            isPaused:           function() { return plyr.media.paused; },
+            on:                 function(event, callback) { _on(plyr.container, event, callback); return this; },
             play:               _play,
             pause:              _pause,
             stop:               function() { _pause(); _seek(); },
@@ -3484,31 +3550,48 @@
         var browser     = _browserSniff(),
             isOldIE     = (browser.isIE && browser.version <= 9),
             isIos       = browser.isIos,
-            isIphone    = /iPhone|iPod/i.test(navigator.userAgent),
-            audio       = !!document.createElement('audio').canPlayType,
-            video       = !!document.createElement('video').canPlayType,
-            basic, full;
+            isIphone    = browser.isIphone,
+            audioSupport = !!document.createElement('audio').canPlayType,
+            videoSupport = !!document.createElement('video').canPlayType,
+            basic       = false,
+            full        = false;
 
         switch (type) {
             case 'video':
-                basic = video;
+                basic = videoSupport;
                 full  = (basic && (!isOldIE && !isIphone));
                 break;
 
             case 'audio':
-                basic = audio;
+                basic = audioSupport;
                 full  = (basic && !isOldIE);
                 break;
 
+            // Vimeo does not seem to be supported on iOS via API
+            // Issue raised https://github.com/vimeo/player.js/issues/87
             case 'vimeo':
+                basic = true;
+                full = (!isOldIE && !isIos);
+                break;
+
             case 'youtube':
+                basic = true;
+                full = (!isOldIE && !isIos);
+
+                // YouTube seems to work on iOS 10+ on iPad
+                if (isIos && !isIphone && browser.version >= 10) {
+                    full = true;
+                }
+
+                break;
+
             case 'soundcloud':
                 basic = true;
-                full  = (!isOldIE && !isIos);
+                full  = (!isOldIE && !isIphone);
                 break;
 
             default:
-                basic = (audio && video);
+                basic = (audioSupport && videoSupport);
                 full  = (basic && !isOldIE);
         }
 
