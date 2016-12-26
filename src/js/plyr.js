@@ -3183,12 +3183,12 @@
                     }
 
                     if (plyr.media.paused) {
-                        _play();
+                        _triggerEvent(plyr.buttons.play[0], 'click', true);
                     } else if (plyr.media.ended) {
                         _seek();
-                        _play();
+                        _triggerEvent(plyr.buttons.play[0], 'click', true);
                     } else {
-                        _pause();
+                        _triggerEvent(plyr.buttons.pause, 'click', true);
                     }
                 });
             }
