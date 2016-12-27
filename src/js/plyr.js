@@ -1851,6 +1851,7 @@
                 // https://github.com/Selz/plyr/issues/317
                 if (_is.htmlElement(plyr.embed.element) && plyr.supported.full) {
                     plyr.embed.element.setAttribute('tabindex', '-1');
+                    _triggerEvent(plyr.media, 'canplay');
                 }
             });
 
