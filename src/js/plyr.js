@@ -2652,6 +2652,15 @@
             }
         }
 
+        function _videoId() {
+          var src = _source();
+          if(src.indexOf('http') !== -1) {
+            return plyr.embedId;
+          } else {
+            return src;
+          }
+        }
+
         // Add common function to retrieve media source
         function _source(source) {
             // If not null or undefined, parse it
@@ -3469,6 +3478,7 @@
             forward:            _forward,
             seek:               _seek,
             source:             _source,
+            videoId:            _videoId,
             poster:             _updatePoster,
             setVolume:          _setVolume,
             togglePlay:         _togglePlay,
