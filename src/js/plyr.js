@@ -1728,6 +1728,7 @@
                                 _triggerEvent(plyr.media, 'canplaythrough');
                             }
                         }, 200);
+                        _triggerEvent(plyr.media, 'canplay');
                     },
                     'onStateChange': function(event) {
                         // Get the instance
