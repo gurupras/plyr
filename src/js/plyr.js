@@ -2681,8 +2681,7 @@
                     url = plyr.media.currentSrc;
                     break;
             }
-
-            return url || '';
+            return url || plyr.embedId;
         }
 
         // Update source
