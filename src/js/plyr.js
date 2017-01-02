@@ -2652,12 +2652,18 @@
             }
         }
 
-        function _videoId() {
-          var src = _source();
-          if(src.indexOf('http') !== -1) {
-            return plyr.embedId;
+        function _videoId(value) {
+          if(value) {
+            // Set
+            plyr.embedId = value;
           } else {
-            return src;
+            // Get
+            var src = _source();
+            if((plyr.type === 'youtube' || plyr.type === 'vimeo') && src.indexOf('http') === -1) {
+              return src;
+            } else {
+              return plyr.embedId;
+            }
           }
         }
 
