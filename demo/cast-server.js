@@ -7,7 +7,7 @@ var crypto = require('crypto');
 
 var http = require('http').createServer(app);
 
-var HTTP_PORT = 8080;
+var HTTP_PORT = 9124;
 
 app.use(morgan('combined'));
 app.use(compression());
