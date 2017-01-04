@@ -1,15 +1,15 @@
 <html>
 	<head>
 		<script
-			src="https://code.jquery.com/jquery-3.1.1.min.js"
+			src="http://code.jquery.com/jquery-3.1.1.min.js"
 			integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
 			crossorigin="anonymous">
 		</script>
-		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/css/materialize.min.css">
+		<link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/css/materialize.min.css">
 		<link rel="stylesheet" type="text/css" href="dist/plyr.css">
 		<script src="src/js/plyr.js"></script>
 
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/js/materialize.min.js"></script>
+		<script src="http://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/js/materialize.min.js"></script>
 	</head>
 
 	<body>
@@ -18,7 +18,12 @@
 				<div class="col s12">
 					<div id="player" class="video player">
 						<video id="video">
-							<source src='https://cdn.selz.com/plyr/1.0/movie.mp4'>
+							<!--
+							<source src='http://cdn.selz.com/plyr/1.0/movie.mp4' crossorigin="anonymous">
+							-->
+							<source src='/demo/movie.mp4' crossorigin="anonymous">
+							<track srclang="en" kind="subtitles" default="" label="English" src="/demo/elephants-dream-subtitles-en.vtt">
+							<track srclang="en" kind="subtitles" default="" label="German" src="/demo/elephants-dream-subtitles-de.vtt">
 						</video>
 					</div>
 				</div>
@@ -29,6 +34,17 @@
 var player;
 window.onload = function() {
 	player = plyr.setup({
+		iconUrl: 'dist/plyr.svg',
+		controls: [
+			'play',
+			'progress',
+			'current-time',
+			'mute',
+			'volume',
+			'captions',
+			'cast',
+			'fullscreen'
+		],
 		listeners: {
 			play: onPlay,
 			pause: onPause,
@@ -54,6 +70,8 @@ window.onload = function() {
 		console.log("on pause");
 	});
 }
+
+/* Google cast stuff */
 		</script>
 	</body>
 </html>
