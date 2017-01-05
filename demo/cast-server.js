@@ -7,7 +7,13 @@ var crypto = require('crypto');
 
 var http = require('http').createServer(app);
 
-var HTTP_PORT = 8080;
+var HTTP_PORT = 9124;
+var HTTPS_PORT = 8107;
+
+var options = {
+	key: fs.readFileSync('/etc/letsencrypt/live/twoseven.xyz/privkey.pem'),
+	cert: fs.readFileSync('/etc/letsencrypt/live/twoseven.xyz/fullchain.pem')
+};
 
 app.use(morgan('combined'));
 app.use(compression());
@@ -26,10 +32,15 @@ app.get('/cast', function(req, res) {
 });
 /* -------------------- END OF TEST URLS --------------------*/
 
-app.use('/src', express.static('../src'));
-app.use('/dist', express.static('../dist'));
-app.use('/demo', express.static('./'));
+app.use('/src', express.static(__dirname + '../src'));
+app.use('/dist', express.static(__dirname + '../dist'));
+app.use('/demo', express.static(__dirname));
 
 http.listen(HTTP_PORT, function () {
 	console.log('HTTP listening on port ' + HTTP_PORT);
+});
+
+var https = require('https').createServer(options, app);
+https.listen(HTTPS_PORT, function() {
+	console.log('HTTPS listening on port ' + HTTPS_PORT);
 });
