@@ -1,7 +1,7 @@
 // ==========================================================================
 // Plyr
-// plyr.js v2.0.11
-// https://github.com/selz/plyr
+// plyr.js v2.0.13
+// https://github.com/sampotts/plyr
 // License: The MIT License (MIT)
 // ==========================================================================
 // Credits: http://paypal.github.io/accessible-html5-video-player/
@@ -43,7 +43,8 @@
         displayDuration:        true,
         loadSprite:             true,
         iconPrefix:             'plyr',
-        iconUrl:                'https://cdn.plyr.io/2.0.11/plyr.svg',
+        iconUrl:                'https://cdn.plyr.io/2.0.13/plyr.svg',
+        blankUrl:               'https://cdn.selz.com/plyr/blank.mp4',
         clickToPlay:            true,
         hideControls:           true,
         showPosterOnEnd:        false,
@@ -686,7 +687,7 @@
             }
 
             // Try to use it (it might be disabled, e.g. user is in private/porn mode)
-            // see: https://github.com/Selz/plyr/issues/131
+            // see: https://github.com/sampotts/plyr/issues/131
             try {
                 // Add test item
                 window.localStorage.setItem('___test', 'OK');
@@ -1417,7 +1418,7 @@
             }
 
             // Set iframe title
-            // https://github.com/Selz/plyr/issues/124
+            // https://github.com/sampotts/plyr/issues/124
             if (_is.htmlElement(iframe)) {
                 iframe.setAttribute('title', config.i18n.frameTitle.replace('{title}', config.title));
             }
@@ -1434,7 +1435,7 @@
             }
 
             // Clean up old volume
-            // https://github.com/Selz/plyr/issues/171
+            // https://github.com/sampotts/plyr/issues/171
             window.localStorage.removeItem('plyr-volume');
 
             // load value from the current key
@@ -1445,7 +1446,7 @@
                 return;
             } else if (/^\d+(\.\d+)?$/.test(value)) {
                 // If value is a number, it's probably volume from an older
-                // version of plyr. See: https://github.com/Selz/plyr/pull/313
+                // version of plyr. See: https://github.com/sampotts/plyr/pull/313
                 // Update the key to be JSON
                 _updateStorage({volume: parseFloat(value)});
             } else {
@@ -1490,7 +1491,7 @@
                 _toggleClass(plyr.container, config.classes.stopped, config.autoplay);
 
                 // Add iOS class
-                _toggleClass(plyr.ontainer, config.classes.isIos, plyr.browser.isIos);
+                _toggleClass(plyr.container, config.classes.isIos, plyr.browser.isIos);
 
                 // Add touch class
                 _toggleClass(plyr.container, config.classes.isTouch, plyr.browser.isTouch);
@@ -1772,7 +1773,7 @@
                                 }, 100);
 
                                 // Check duration again due to YouTube bug
-                                // https://github.com/Selz/plyr/issues/374
+                                // https://github.com/sampotts/plyr/issues/374
                                 // https://code.google.com/p/gdata-issues/issues/detail?id=8690
                                 if (plyr.media.duration !== instance.getDuration()) {
                                     plyr.media.duration = instance.getDuration();
@@ -1849,7 +1850,7 @@
 
             plyr.embed.on('loaded', function() {
                 // Fix keyboard focus issues
-                // https://github.com/Selz/plyr/issues/317
+                // https://github.com/sampotts/plyr/issues/317
                 if (_is.htmlElement(plyr.embed.element) && plyr.supported.full) {
                     plyr.embed.element.setAttribute('tabindex', '-1');
                     _triggerEvent(plyr.media, 'canplay');
@@ -3085,7 +3086,7 @@
             }
 
             // Captions
-            _on(plyr.buttons.captions, 'click', _toggleCaptions);
+            _proxyListener(plyr.buttons.captions, 'click', config.listeners.captions, _toggleCaptions);
 
             // Seek tooltip
             _on(plyr.progress.container, 'mouseenter mouseleave mousemove', _updateSeekTooltip);
@@ -3222,7 +3223,7 @@
         }
 
         // Cancel current network requests
-        // See https://github.com/Selz/plyr/issues/174
+        // See https://github.com/sampotts/plyr/issues/174
         function _cancelRequests() {
             if (!_inArray(config.types.html5, plyr.type)) {
                 return;
@@ -3237,11 +3238,11 @@
             // Set blank video src attribute
             // This is to prevent a MEDIA_ERR_SRC_NOT_SUPPORTED error
             // Info: http://stackoverflow.com/questions/32231579/how-to-properly-dispose-of-an-html5-video-and-close-socket-or-connection
-            plyr.media.setAttribute('src', 'https://cdn.selz.com/plyr/blank.mp4');
+            plyr.media.setAttribute('src', config.blankUrl);
 
             // Load the new empty source
             // This will cancel existing requests
-            // See https://github.com/Selz/plyr/issues/174
+            // See https://github.com/sampotts/plyr/issues/174
             plyr.media.load();
 
             // Debugging
