@@ -3645,6 +3645,10 @@
                 _on(plyr.container, event, callback);
                 return this;
             },
+            off: function(event, callback) {
+              _off(plyr.container, event, callback);
+              return this;
+            },
             play: _play,
             pause: _pause,
             stop: function() {
