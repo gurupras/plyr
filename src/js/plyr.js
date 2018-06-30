@@ -308,7 +308,7 @@ class Plyr {
      * Types and provider helpers
      */
     get isHTML5() {
-        return Boolean(this.provider === providers.html5);
+        return Boolean(this.provider === providers.html5 || this.provider === providers.hls);
     }
 
     get isEmbed() {
@@ -329,6 +329,9 @@ class Plyr {
 
     get isAudio() {
         return Boolean(this.type === types.audio);
+    }
+    get isHls() {
+        return Boolean(this.provider === providers.hls);
     }
 
     /**
@@ -784,7 +787,7 @@ class Plyr {
      * Get current source
      */
     get source() {
-        return this.media.currentSrc;
+        return this.media.getAttribute('currentSrc') || this.media.currentSrc;
     }
 
     /**
@@ -1045,6 +1048,12 @@ class Plyr {
             // Restore native video controls
             ui.toggleNativeControls.call(this, true);
 
+            if (this.isHls) {
+                // Destroy hls API
+                if (this.embed !== null && is.function(this.embed.destroy)) {
+                    this.embed.destroy();
+                }
+            }
             // Clean up
             done();
         } else if (this.isYouTube) {

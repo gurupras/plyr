@@ -51,6 +51,9 @@ const support = {
     // Credits: http://diveintohtml5.info/everything.html
     // Related: http://www.leanbackplayer.com/test/h5mt.html
     mime(inputType) {
+        if (!inputType) {
+            return false;
+        }
         const [mediaType] = inputType.split('/');
         if (!this.isHTML5 || mediaType !== this.type) {
             return false;

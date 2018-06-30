@@ -4,6 +4,7 @@
 
 export const providers = {
     html5: 'html5',
+    hls: 'hls',
     youtube: 'youtube',
     vimeo: 'vimeo',
 };

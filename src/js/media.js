@@ -5,6 +5,7 @@
 import html5 from './html5';
 import vimeo from './plugins/vimeo';
 import youtube from './plugins/youtube';
+import hls from './plugins/hls';
 import { createElement, toggleClass, wrap } from './utils/elements';
 
 const media = {
@@ -52,6 +53,9 @@ const media = {
             youtube.setup.call(this);
         } else if (this.isVimeo) {
             vimeo.setup.call(this);
+        }
+        if (this.isHls) {
+            hls.setup.call(this);
         }
     },
 };

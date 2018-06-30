@@ -209,6 +209,9 @@ const defaults = {
         googleIMA: {
             sdk: 'https://imasdk.googleapis.com/js/sdkloader/ima3.js',
         },
+        hls: {
+            api: 'https://cdn.jsdelivr.net/npm/hls.js',
+        },
     },
 
     // Custom control listeners
