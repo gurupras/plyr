@@ -14,19 +14,11 @@ const hls = {
         const qualityLevels = [{
             label: 'Default',
             height: 0,
-            index: -1,
             badge: '',
         }];
-        qualityLevels.push(...levels.map((level, index) => {
-            const { height } = level;
-            const ret = {
-                label: `${height}`,
-                height,
-                index,
-                badge: height >= 720 ? 'HD' : 'SD',
-            };
-            return ret;
-        }));
+        qualityLevels.push(...levels.map(level => ({
+            height: level.height,
+        })));
         return qualityLevels;
     },
 
@@ -68,23 +60,19 @@ const hls = {
             // Pass through any relevant events here
             Object.defineProperty(player.media, 'quality', {
                 get() {
-                    return qualityLevels.find(e => e.index === player.embed.currentLevel).label;
+                    return player.options.quality.find(e => e.index === player.embed.currentLevel).label;
                 },
                 set(input) {
                     player.embed.currentLevel = input.index;
+                    triggerEvent.call(player, player.media, 'qualitychange', false, {
+                        quality: input,
+                    });
                 },
             });
             controls.setQualityMenu.call(
                 player,
                 qualityLevels,
             );
-
-            player.embed.on(window.Hls.Events.LEVEL_SWITCHED, (evt, data) => {
-                const quality = qualityLevels.find(level => level.index === data.level);
-                triggerEvent.call(player, player.media, 'qualitychange', false, {
-                    quality,
-                });
-            });
         });
     },
 };
