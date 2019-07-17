@@ -190,6 +190,7 @@ class Listeners {
 
         // Add touch class
         toggleClass(elements.container, player.config.classNames.isTouch, true);
+        triggerEvent.call(this.player, this.player.elements.container, 'firsttouch', true);
     }
 
     setTabFocus(event) {
