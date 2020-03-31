@@ -3366,7 +3366,7 @@ var captions = {
 
     toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is$1.empty(tracks)); // Update available languages in list
 
-    if ((this.config.controls || []).includes('settings') && this.config.settings.includes('captions')) {
+    if (is$1.array(this.config.controls) && this.config.controls.includes('settings') && this.config.settings.includes('captions')) {
       controls.setCaptionsMenu.call(this);
     }
   },
@@ -4589,6 +4589,8 @@ function () {
   _createClass(Listeners, [{
     key: "handleKey",
     value: function handleKey(event) {
+      var _this = this;
+
       var player = this.player;
       var elements = player.elements;
       var code = event.keyCode ? event.keyCode : event.which;
@@ -4608,7 +4610,11 @@ function () {
 
       var seekByKey = function seekByKey() {
         // Divide the max duration into 10th's and times by the number value
-        player.currentTime = player.duration / 10 * (code - 48);
+        var target = player.duration / 10 * (code - 48);
+
+        _this.proxy(event, function () {
+          player.currentTime = target;
+        }, 'seek');
       }; // Handle the key on keydown
       // Reset on keyup
 
@@ -4662,62 +4668,70 @@ function () {
           case 75:
             // Space and K key
             if (!repeat) {
-              player.togglePlay();
+              this.proxy(event, player.togglePlay, 'play');
             }
 
             break;
 
           case 38:
             // Arrow up
-            player.increaseVolume(0.1);
+            this.proxy(event, function () {
+              return player.increaseVolume(0.1);
+            }, 'volume');
             break;
 
           case 40:
             // Arrow down
-            player.decreaseVolume(0.1);
+            this.proxy(event, function () {
+              return player.decreaseVolume(0.1);
+            }, 'volume');
             break;
 
           case 77:
             // M key
             if (!repeat) {
-              player.muted = !player.muted;
+              this.proxy(event, function () {
+                player.muted = !player.muted;
+              }, 'mute');
             }
 
             break;
 
           case 39:
             // Arrow forward
-            player.forward();
+            this.proxy(event, player.forward, 'fastForward');
             break;
 
           case 37:
             // Arrow back
-            player.rewind();
+            this.proxy(event, player.rewind, 'rewind');
             break;
 
           case 70:
             // F key
-            player.fullscreen.toggle();
+            this.proxy(event, player.fullscreen.toggle, 'fullscreen');
             break;
 
           case 67:
             // C key
             if (!repeat) {
-              player.toggleCaptions();
+              this.proxy(event, player.toggleCaptions, 'captions');
             }
 
             break;
 
           case 76:
             // L key
-            player.loop = !player.loop;
+            this.proxy(event, function () {
+              player.loop = !player.loop;
+            }, 'loop');
             break;
         } // Escape is handle natively when in full screen
         // So we only need to worry about non native
 
 
         if (code === 27 && !player.fullscreen.usingNative && player.fullscreen.active) {
-          player.fullscreen.toggle();
+          this.proxy(event, player.fullscreen.toggle, 'fullscreen');
         } // Store last code for next cycle
 
 
@@ -4917,7 +4931,7 @@ function () {
   }, {
     key: "media",
     value: function media() {
-      var _this = this;
+      var _this2 = this;
 
       var player = this.player;
       var elements = player.elements; // Time change on media
@@ -4978,11 +4992,11 @@ function () {
           }
 
           if (player.ended) {
-            _this.proxy(event, player.restart, 'restart');
+            _this2.proxy(event, player.restart, 'restart');
 
-            _this.proxy(event, player.play, 'play');
+            _this2.proxy(event, player.play, 'play');
           } else {
-            _this.proxy(event, player.togglePlay, 'play');
+            _this2.proxy(event, player.togglePlay, 'play');
           }
         });
       } // Disable right click
@@ -5057,21 +5071,21 @@ function () {
   }, {
     key: "bind",
     value: function bind(element, type, defaultHandler, customHandlerKey) {
-      var _this2 = this;
+      var _this3 = this;
 
       var passive = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
       var player = this.player;
       var customHandler = player.config.listeners[customHandlerKey];
       var hasCustomHandler = is$1.function(customHandler);
       on.call(player, element, type, function (event) {
-        return _this2.proxy(event, defaultHandler, customHandlerKey);
+        return _this3.proxy(event, defaultHandler, customHandlerKey);
       }, passive && !hasCustomHandler);
     } // Listen for control events
 
   }, {
     key: "controls",
     value: function controls$1() {
-      var _this3 = this;
+      var _this4 = this;
 
       var player = this.player;
       var elements = player.elements; // IE doesn't support input event, so we fallback to change
@@ -5080,7 +5094,7 @@ function () {
 
       if (elements.buttons.play) {
         Array.from(elements.buttons.play).forEach(function (button) {
-          _this3.bind(button, 'click', player.togglePlay, 'play');
+          _this4.bind(button, 'click', player.togglePlay, 'play');
         });
       } // Pause
 
@@ -5189,7 +5203,7 @@ function () {
       if (browser.isIos) {
         var inputs = getElements.call(player, 'input[type="range"]');
         Array.from(inputs).forEach(function (input) {
-          return _this3.bind(input, inputEvent, function (event) {
+          return _this4.bind(input, inputEvent, function (event) {
             return repaint(event.target);
           });
         });
@@ -5247,7 +5261,7 @@ function () {
 
       if (browser.isWebkit) {
         Array.from(getElements.call(player, 'input[type="range"]')).forEach(function (element) {
-          _this3.bind(element, 'input', function (event) {
+          _this4.bind(element, 'input', function (event) {
             return controls.updateRangeFill.call(player, event.target);
           });
         });
@@ -5293,7 +5307,7 @@ function () {
           toggleClass(elements.controls, config.classNames.noTransition, false);
         }, 0); // Delay a little more for mouse users
 
-        var delay = _this3.touch ? 3000 : 4000; // Clear timer
+        var delay = _this4.touch ? 3000 : 4000; // Clear timer
 
         clearTimeout(timers.controls); // Hide again after delay
 
