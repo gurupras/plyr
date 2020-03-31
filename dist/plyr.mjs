@@ -60,6 +60,10 @@ function _iterableToArray(iter) {
 }
 
 function _iterableToArrayLimit(arr, i) {
+  if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
+    return;
+  }
+
   var _arr = [];
   var _n = true;
   var _d = false;
@@ -109,7 +113,7 @@ function matches(element, selector) {
     return Array.from(document.querySelectorAll(selector)).includes(this);
   }
 
-  var matches = match;
+  var matches =  match;
   return matches.call(element, selector);
 }
 
@@ -570,7 +574,7 @@ function repaint(element, delay) {
 var browser = {
   isIE:
   /* @cc_on!@ */
-  !!document.documentMode,
+   !!document.documentMode,
   isEdge: window.navigator.userAgent.includes('Edge'),
   isWebkit: 'WebkitAppearance' in document.documentElement.style && !/Edge/.test(navigator.userAgent),
   isIPhone: /(iPhone|iPod)/gi.test(navigator.platform),
@@ -923,9 +927,6 @@ function getAttributesFromSelector(sel, existingAttributes) {
         // Attribute selector
         attributes[key] = value;
         break;
-
-      default:
-        break;
     }
   });
   return extend(existing, attributes);
@@ -977,7 +978,7 @@ function matches$1(element, selector) {
     return Array.from(document.querySelectorAll(selector)).includes(this);
   }
 
-  var method = match;
+  var method =  match;
   return method.call(element, selector);
 } // Find all elements
 
@@ -2054,11 +2055,13 @@ var controls = {
         _ref$badge = _ref.badge,
         badge = _ref$badge === void 0 ? null : _ref$badge,
         _ref$checked = _ref.checked,
-        checked = _ref$checked === void 0 ? false : _ref$checked;
+        checked = _ref$checked === void 0 ? false : _ref$checked,
+        _ref$role = _ref.role,
+        role = _ref$role === void 0 ? 'menuitemradio' : _ref$role;
     var attributes = getAttributesFromSelector(this.config.selectors.inputs[type]);
     var menuItem = createElement('button', extend(attributes, {
       type: 'button',
-      role: 'menuitemradio',
+      role: role,
       class: "".concat(this.config.classNames.control, " ").concat(attributes.class ? attributes.class : '').trim(),
       'aria-checked': checked,
       value: value
@@ -2097,11 +2100,18 @@ var controls = {
       }
 
       event.preventDefault();
-      event.stopPropagation();
+      event.stopPropagation(); // Should we navigate back to home after this event?
+
+      var shouldMenuPanelGoHome = true;
       menuItem.checked = true;
 
       switch (type) {
         case 'language':
+          if (value === -2) {
+            // We're uploading captions. Don't make the menu go back
+            shouldMenuPanelGoHome = false;
+          }
+
           _this3.currentTrack = Number(value);
           break;
 
@@ -2112,12 +2122,11 @@ var controls = {
         case 'speed':
           _this3.speed = parseFloat(value);
           break;
-
-        default:
-          break;
       }
 
-      controls.showMenuPanel.call(_this3, 'home', is$1.keyboardEvent(event));
+      if (shouldMenuPanelGoHome) {
+        controls.showMenuPanel.call(_this3, 'home', is$1.keyboardEvent(event));
+      }
     }, type, false);
     controls.bindMenuItemShortcuts.call(this, menuItem, type);
     list.appendChild(menuItem);
@@ -2222,9 +2231,6 @@ var controls = {
         case 'playing':
         case 'progress':
           setProgress(this.elements.display.buffer, this.buffered * 100);
-          break;
-
-        default:
           break;
       }
     }
@@ -2546,8 +2552,9 @@ var controls = {
 
     var type = 'captions';
     var list = this.elements.settings.panels.captions.querySelector('[role="menu"]');
-    var tracks = captions.getTracks.call(this);
-    var toggle = Boolean(tracks.length); // Toggle the pane and tab
+    var tracks = captions.getTracks.call(this); // We need to show the menu if there are captions or if upload captions is enabled
+
+    var toggle = Boolean(tracks.length) || Boolean(this.config.captions.upload) && Boolean(this.config.captions.upload.enabled); // Toggle the pane and tab
 
     controls.toggleMenuButton.call(this, type, toggle); // Empty the menu
 
@@ -2577,7 +2584,18 @@ var controls = {
       title: i18n.get('disabled', this.config),
       list: list,
       type: 'language'
-    }); // Generate options
+    });
+
+    if (this.config.captions.upload && this.config.captions.upload.enabled) {
+      options.unshift({
+        value: -2,
+        title: 'Upload Captions',
+        list: list,
+        type: 'language',
+        role: 'button'
+      });
+    } // Generate options
+
 
     options.forEach(controls.createMenuItem.bind(this));
     controls.updateSetting.call(this, type, list);
@@ -3230,13 +3248,15 @@ function buildUrlParams(input) {
 var captions = {
   // Setup captions
   setup: function setup() {
+    var _this = this;
+
     // Requires UI support
     if (!this.supported.ui) {
       return;
     } // Only Vimeo and HTML5 video supported at this point
 
 
-    if (!this.isVideo || this.isYouTube || this.isHTML5 && !support.textTracks) {
+    if (!this.isVideo || this.isHTML5 && !support.textTracks) {
       // Clear menu and hide
       if (is$1.array(this.config.controls) && this.config.controls.includes('settings') && this.config.settings.includes('captions')) {
         controls.setCaptionsMenu.call(this);
@@ -3303,6 +3323,101 @@ var captions = {
     if (this.isHTML5) {
       var trackEvents = this.config.captions.update ? 'addtrack removetrack' : 'removetrack';
       on.call(this, this.media.textTracks, trackEvents, captions.update.bind(this));
+    }
+
+    if (this.isYouTube) {
+      // Disable captions here. We will enable them in update if they should be on
+      captions.toggleYouTubeCaptions.bind(this)(false);
+    }
+
+    var upload = this.config.captions.upload;
+
+    if (upload && upload.enabled) {
+      var addTrack = function addTrack(_ref) {
+        var text = _ref.text,
+            label = _ref.label,
+            src = _ref.src,
+            _ref$kind = _ref.kind,
+            kind = _ref$kind === void 0 ? 'captions' : _ref$kind,
+            _ref$srclang = _ref.srclang,
+            srclang = _ref$srclang === void 0 ? '--' : _ref$srclang,
+            _ref$type = _ref.type,
+            type = _ref$type === void 0 ? 'text/vtt;charset=utf-8' : _ref$type;
+
+        if (!src) {
+          if (!text) {
+            throw new Error("Must specify either 'text' or 'src'");
+          }
+
+          var blob = new Blob([text], {
+            type: type
+          });
+          src = window.URL.createObjectURL(blob);
+        }
+
+        var track = createElement('track', {
+          src: src,
+          kind: kind,
+          srclang: srclang,
+          label: label
+        });
+
+        _this.media.appendChild(track);
+      };
+
+      var formats = upload.formats,
+          callback = upload.callback,
+          onInput = upload.onInput,
+          onProcessed = upload.onProcessed;
+      var accept = formats.map(function (x) {
+        return ".".concat(x);
+      }).join(',');
+      var parent = this.elements.settings.panels.captions;
+
+      if (!parent.querySelector('#upload-captions')) {
+        var fileInput = createElement('input', {
+          id: 'upload-captions',
+          type: 'file',
+          accept: accept
+        });
+        fileInput.style.display = 'none';
+        parent.appendChild(fileInput);
+        fileInput.addEventListener('change', function (e) {
+          var file = e.target.files[0];
+          var label = file.name;
+          var reader = new FileReader();
+
+          reader.onload = function () {
+            var text = reader.result;
+            var hasProcessing = Boolean(onInput) && Boolean(onProcessed);
+
+            if (callback && Boolean(onInput)) {
+              // We need to trigger this event even if onProcessed is false
+              // since the user may just want to be informed of this event.
+              triggerEvent.call(_this, _this.media, onInput, true, {
+                label: label,
+                text: text
+              });
+            }
+
+            if (!callback || !hasProcessing) {
+              // The user is not processing the file. Just add the track
+              addTrack({
+                label: label,
+                text: text
+              });
+            }
+          };
+
+          reader.readAsText(file);
+        });
+
+        if (Boolean(onProcessed)) {
+          on.call(this, this.media, onProcessed, function (e) {
+            addTrack(e.detail);
+          });
+        }
+      }
     } // Update available languages in list next tick (the event must not be triggered before the listeners)
 
 
@@ -3310,7 +3425,7 @@ var captions = {
   },
   // Update available language options in settings based on tracks
   update: function update() {
-    var _this = this;
+    var _this2 = this;
 
     var tracks = captions.getTracks.call(this, true); // Get the wanted language
 
@@ -3327,7 +3442,7 @@ var captions = {
       tracks.filter(function (track) {
         return !meta.get(track);
       }).forEach(function (track) {
-        _this.debug.log('Track added', track); // Attempt to store if the original dom element was "default"
+        _this2.debug.log('Track added', track); // Attempt to store if the original dom element was "default"
 
 
         meta.set(track, {
@@ -3337,8 +3452,8 @@ var captions = {
 
         track.mode = 'hidden'; // Add event listener for cue changes
 
-        on.call(_this, track, 'cuechange', function () {
-          return captions.updateCues.call(_this);
+        on.call(_this2, track, 'cuechange', function () {
+          return captions.updateCues.call(_this2);
         });
       });
     } // Update language first time it matches, or if the previous matching track was removed
@@ -3347,10 +3462,19 @@ var captions = {
     if (languageExists && this.language !== language || !tracks.includes(currentTrackNode)) {
       captions.setLanguage.call(this, language);
       captions.toggle.call(this, active && languageExists);
-    } // Enable or disable captions based on track length
+    }
 
+    if (this.isYouTube) {
+      captions.toggleYouTubeCaptions.bind(this)(active);
+      captions.toggle.call(this, active);
+      toggleClass(this.elements.container, this.config.classNames.captions.enabled, this.config.captions);
+    }
 
-    toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is$1.empty(tracks)); // Update available languages in list
+    if (this.isHTML5) {
+      // Enable or disable captions based on track length
+      toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is$1.empty(tracks));
+    } // Update available languages in list
+
 
     if ((this.config.controls || []).includes('settings') && this.config.settings.includes('captions')) {
       controls.setCaptionsMenu.call(this);
@@ -3380,17 +3504,23 @@ var captions = {
         this.storage.set({
           captions: active
         });
-      } // Force language if the call isn't passive and there is no matching language to toggle to
+      }
 
+      if (this.isHTML5) {
+        // Force language if the call isn't passive and there is no matching language to toggle to
+        if (!this.language && active && !passive) {
+          var tracks = captions.getTracks.call(this);
+          var track = captions.findTrack.call(this, [this.captions.language].concat(_toConsumableArray(this.captions.languages)), true); // Override user preferences to avoid switching languages if a matching track is added
 
-      if (!this.language && active && !passive) {
-        var tracks = captions.getTracks.call(this);
-        var track = captions.findTrack.call(this, [this.captions.language].concat(_toConsumableArray(this.captions.languages)), true); // Override user preferences to avoid switching languages if a matching track is added
+          this.captions.language = track.language; // Set caption, but don't store in localStorage as user preference
 
-        this.captions.language = track.language; // Set caption, but don't store in localStorage as user preference
+          captions.set.call(this, tracks.indexOf(track));
+          return;
+        }
+      }
 
-        captions.set.call(this, tracks.indexOf(track));
-        return;
+      if (this.isYouTube) {
+        captions.toggleYouTubeCaptions.bind(this)(active);
       } // Toggle button if it's enabled
 
 
@@ -3418,6 +3548,14 @@ var captions = {
       return;
     }
 
+    if (this.config.captions.upload && this.config.captions.upload.enabled) {
+      if (index === -2) {
+        // Show the input file dialog allowing the user to pick a file
+        var input = this.elements.settings.panels.captions.querySelector('#upload-captions');
+        input.click();
+      }
+    }
+
     if (!is$1.number(index)) {
       this.debug.warn('Invalid caption argument', index);
       return;
@@ -3432,8 +3570,8 @@ var captions = {
       this.captions.currentTrack = index;
       var track = tracks[index];
 
-      var _ref = track || {},
-          language = _ref.language; // Store reference to node for invalidation on remove
+      var _ref2 = track || {},
+          language = _ref2.language; // Store reference to node for invalidation on remove
 
 
       this.captions.currentTrackNode = track; // Update settings menu
@@ -3486,7 +3624,7 @@ var captions = {
   // If update is false it will also ignore tracks without metadata
   // This is used to "freeze" the language options when captions.update is false
   getTracks: function getTracks() {
-    var _this2 = this;
+    var _this3 = this;
 
     var update = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
     // Handle media or textTracks missing or null
@@ -3494,20 +3632,20 @@ var captions = {
     // Filter out removed tracks and tracks that aren't captions/subtitles (for example metadata)
 
     return tracks.filter(function (track) {
-      return !_this2.isHTML5 || update || _this2.captions.meta.has(track);
+      return !_this3.isHTML5 || update || _this3.captions.meta.has(track);
     }).filter(function (track) {
       return ['captions', 'subtitles'].includes(track.kind);
     });
   },
   // Match tracks based on languages and get the first
   findTrack: function findTrack(languages) {
-    var _this3 = this;
+    var _this4 = this;
 
     var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
     var tracks = captions.getTracks.call(this);
 
     var sortIsDefault = function sortIsDefault(track) {
-      return Number((_this3.captions.meta.get(track) || {}).default);
+      return Number((_this4.captions.meta.get(track) || {}).default);
     };
 
     var sorted = Array.from(tracks).sort(function (a, b) {
@@ -3592,6 +3730,11 @@ var captions = {
 
       triggerEvent.call(this, this.media, 'cuechange');
     }
+  },
+  toggleYouTubeCaptions: function toggleYouTubeCaptions(active) {
+    var fn = (active ? this.embed.loadModule : this.embed.unloadModule).bind(this.embed);
+    fn('captions');
+    fn('cc');
   }
 };
 
@@ -3675,7 +3818,27 @@ var defaults$1 = {
     language: 'auto',
     // Listen to new tracks added after Plyr is initialized.
     // This is needed for streaming captions, but may result in unselectable options
-    update: false
+    update: false,
+    // Allow uploading captions from local filesystem.
+    // Once a file is selected,
+    // This either requires update to be true or the developer needs to call
+    upload: {
+      enabled: false,
+      // The formats that are valid
+      formats: ['vtt'],
+      // Set to true if you're allowing formats other than vtt where the input needs to be processed.
+      // This is useful in cases where the developer allows selecting of
+      // formats such as srt, ssa, etc, which need to be converted into vtt
+      // before plyr can add it as a track element.
+      callback: false,
+      // The event that plyr will trigger when the user has selected a file and callback is true.
+      // If null, then plyr will treat the file as a VTT file and directly add it
+      onInput: 'trackinput',
+      // The event that plyr will listen for when callback is true.
+      // If null, then plyr will treat the file as a VTT file and directly add it.
+      // You can also add tracks manually
+      onProcessed: 'inserttrack'
+    }
   },
   // Fullscreen settings
   fullscreen: {
@@ -4336,7 +4499,7 @@ var ui = {
 
     ui.toggleNativeControls.call(this); // Setup captions for HTML5
 
-    if (this.isHTML5) {
+    if (this.isHTML5 || this.isYouTube) {
       captions.setup.call(this);
     } // Reset volume
 
@@ -4526,6 +4689,8 @@ function () {
   _createClass(Listeners, [{
     key: "handleKey",
     value: function handleKey(event) {
+      var _this = this;
+
       var player = this.player;
       var elements = player.elements;
       var code = event.keyCode ? event.keyCode : event.which;
@@ -4545,7 +4710,11 @@ function () {
 
       var seekByKey = function seekByKey() {
         // Divide the max duration into 10th's and times by the number value
-        player.currentTime = player.duration / 10 * (code - 48);
+        var target = player.duration / 10 * (code - 48);
+
+        _this.proxy(event, function () {
+          player.currentTime = target;
+        }, 'seek');
       }; // Handle the key on keydown
       // Reset on keyup
 
@@ -4599,75 +4768,76 @@ function () {
           case 75:
             // Space and K key
             if (!repeat) {
-              player.togglePlay();
+              this.proxy(event, player.togglePlay, 'play');
             }
 
             break;
 
           case 38:
             // Arrow up
-            player.increaseVolume(0.1);
+            this.proxy(event, function () {
+              return player.increaseVolume(0.1);
+            }, 'volume');
             break;
 
           case 40:
             // Arrow down
-            player.decreaseVolume(0.1);
+            this.proxy(event, function () {
+              return player.decreaseVolume(0.1);
+            }, 'volume');
             break;
 
           case 77:
             // M key
             if (!repeat) {
-              player.muted = !player.muted;
+              this.proxy(event, function () {
+                player.muted = !player.muted;
+              }, 'mute');
             }
 
             break;
 
           case 39:
             // Arrow forward
-            player.forward();
+            this.proxy(event, player.forward, 'fastForward');
             break;
 
           case 37:
             // Arrow back
-            player.rewind();
+            this.proxy(event, player.rewind, 'rewind');
             break;
 
           case 70:
             // F key
-            player.fullscreen.toggle();
+            this.proxy(event, function () {
+              return player.fullscreen.toggle();
+            }, 'fullscreen');
             break;
 
           case 67:
             // C key
             if (!repeat) {
-              player.toggleCaptions();
+              this.proxy(event, function () {
+                return player.toggleCaptions();
+              }, 'captions');
             }
 
             break;
 
           case 76:
             // L key
-            player.loop = !player.loop;
-            break;
-
-          /* case 73:
-              this.setLoop('start');
-              break;
-           case 76:
-              this.setLoop();
-              break;
-           case 79:
-              this.setLoop('end');
-              break; */
-
-          default:
+            this.proxy(event, function () {
+              player.loop = !player.loop;
+            }, 'loop');
             break;
         } // Escape is handle natively when in full screen
         // So we only need to worry about non native
 
 
         if (code === 27 && !player.fullscreen.usingNative && player.fullscreen.active) {
-          player.fullscreen.toggle();
+          this.proxy(event, function () {
+            return player.fullscreen.toggle();
+          }, 'fullscreen');
         } // Store last code for next cycle
 
 
@@ -4691,6 +4861,7 @@ function () {
       player.touch = true; // Add touch class
 
       toggleClass(elements.container, player.config.classNames.isTouch, true);
+      triggerEvent.call(this.player, this.player.elements.container, 'firsttouch', true);
     }
   }, {
     key: "setTabFocus",
@@ -4867,7 +5038,7 @@ function () {
   }, {
     key: "media",
     value: function media() {
-      var _this = this;
+      var _this2 = this;
 
       var player = this.player;
       var elements = player.elements; // Time change on media
@@ -4932,11 +5103,11 @@ function () {
           }
 
           if (player.ended) {
-            _this.proxy(event, player.restart, 'restart');
+            _this2.proxy(event, player.restart, 'restart');
 
-            _this.proxy(event, player.play, 'play');
+            _this2.proxy(event, player.play, 'play');
           } else {
-            _this.proxy(event, player.togglePlay, 'play');
+            _this2.proxy(event, player.togglePlay, 'play');
           }
         });
       } // Disable right click
@@ -5011,21 +5182,21 @@ function () {
   }, {
     key: "bind",
     value: function bind(element, type, defaultHandler, customHandlerKey) {
-      var _this2 = this;
+      var _this3 = this;
 
       var passive = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
       var player = this.player;
       var customHandler = player.config.listeners[customHandlerKey];
       var hasCustomHandler = is$1.function(customHandler);
       on.call(player, element, type, function (event) {
-        return _this2.proxy(event, defaultHandler, customHandlerKey);
+        return _this3.proxy(event, defaultHandler, customHandlerKey);
       }, passive && !hasCustomHandler);
     } // Listen for control events
 
   }, {
     key: "controls",
     value: function controls$1() {
-      var _this3 = this;
+      var _this4 = this;
 
       var player = this.player;
       var elements = player.elements; // IE doesn't support input event, so we fallback to change
@@ -5034,7 +5205,7 @@ function () {
 
       if (elements.buttons.play) {
         Array.from(elements.buttons.play).forEach(function (button) {
-          _this3.bind(button, 'click', player.togglePlay, 'play');
+          _this4.bind(button, 'click', player.togglePlay, 'play');
         });
       } // Pause
 
@@ -5141,7 +5312,7 @@ function () {
       if (browser.isIos) {
         var inputs = getElements.call(player, 'input[type="range"]');
         Array.from(inputs).forEach(function (input) {
-          return _this3.bind(input, inputEvent, function (event) {
+          return _this4.bind(input, inputEvent, function (event) {
             return repaint(event.target);
           });
         });
@@ -5199,7 +5370,7 @@ function () {
 
       if (browser.isWebkit) {
         Array.from(getElements.call(player, 'input[type="range"]')).forEach(function (element) {
-          _this3.bind(element, 'input', function (event) {
+          _this4.bind(element, 'input', function (event) {
             return controls.updateRangeFill.call(player, event.target);
           });
         });
@@ -5245,7 +5416,7 @@ function () {
           toggleClass(elements.controls, config.classNames.noTransition, false);
         }, 0); // Delay a little more for mouse users
 
-        var delay = _this3.touch ? 3000 : 4000; // Clear timer
+        var delay = _this4.touch ? 3000 : 4000; // Clear timer
 
         clearTimeout(timers.controls); // Hide again after delay
 
@@ -5391,12 +5562,13 @@ var loadjs_umd = createCommonjsModule(function (module, exports) {
           async = args.async,
           maxTries = (args.numRetries || 0) + 1,
           beforeCallbackFn = args.before || devnull,
+          pathname = path.replace(/[\?|#].*$/, ''),
           pathStripped = path.replace(/^(css|img)!/, ''),
           isLegacyIECss,
           e;
       numTries = numTries || 0;
 
-      if (/(^css!|\.css$)/.test(path)) {
+      if (/(^css!|\.css$)/.test(pathname)) {
         // css
         e = doc.createElement('link');
         e.rel = 'stylesheet';
@@ -5409,7 +5581,7 @@ var loadjs_umd = createCommonjsModule(function (module, exports) {
           e.rel = 'preload';
           e.as = 'style';
         }
-      } else if (/(^img!|\.(png|gif|jpg|svg)$)/.test(path)) {
+      } else if (/(^img!|\.(png|gif|jpg|svg|webp)$)/.test(pathname)) {
         // image
         e = doc.createElement('img');
         e.src = pathStripped;
@@ -6314,9 +6486,6 @@ var youtube = {
 
               assurePlaybackState$1.call(player, false);
               break;
-
-            default:
-              break;
           }
 
           triggerEvent.call(player, player.elements.container, 'statechange', false, {
@@ -6729,9 +6898,6 @@ function () {
             this.player.debug.warn("Non-fatal ad error: ".concat(adData.adError.getMessage()));
           }
 
-          break;
-
-        default:
           break;
       }
     }
