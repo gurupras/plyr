@@ -30,8 +30,8 @@ const captions = {
       return;
     }
 
-    // Only Vimeo and HTML5 video supported at this point
-    if (!this.isVideo || this.isYouTube || (this.isHTML5 && !support.textTracks)) {
+    // Only Vimeo, YouTube and HTML5 video supported at this point
+    if (!this.isVideo || (this.isHTML5 && !support.textTracks)) {
       // Clear menu and hide
       if (
         is.array(this.config.controls) &&
@@ -110,6 +110,11 @@ const captions = {
       on.call(this, this.media.textTracks, trackEvents, captions.update.bind(this));
     }
 
+    if (this.isYouTube) {
+      // Disable captions here. We will enable them in update if they should be on
+      captions.toggleYouTubeCaptions.bind(this)(false);
+    }
+
     // Update available languages in list next tick (the event must not be triggered before the listeners)
     setTimeout(captions.update.bind(this), 0);
   },
@@ -153,8 +158,16 @@ const captions = {
       captions.toggle.call(this, active && languageExists);
     }
 
-    // Enable or disable captions based on track length
-    toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is.empty(tracks));
+    if (this.isYouTube) {
+      captions.toggleYouTubeCaptions.bind(this)(active);
+      captions.toggle.call(this, active);
+      toggleClass(this.elements.container, this.config.classNames.captions.enabled, this.config.captions);
+    }
+
+    if (this.isHTML5) {
+      // Enable or disable captions based on track length
+      toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is.empty(tracks));
+    }
 
     const { upload } = this.config.captions;
     if (upload && upload.enabled) {
@@ -249,17 +262,22 @@ const captions = {
         this.storage.set({ captions: active });
       }
 
-      // Force language if the call isn't passive and there is no matching language to toggle to
-      if (!this.language && active && !passive) {
-        const tracks = captions.getTracks.call(this);
-        const track = captions.findTrack.call(this, [this.captions.language, ...this.captions.languages], true);
+      if (this.isHTML5) {
+        // Force language if the call isn't passive and there is no matching language to toggle to
+        if (!this.language && active && !passive) {
+          const tracks = captions.getTracks.call(this);
+          const track = captions.findTrack.call(this, [this.captions.language, ...this.captions.languages], true);
 
-        // Override user preferences to avoid switching languages if a matching track is added
-        this.captions.language = track.language;
+          // Override user preferences to avoid switching languages if a matching track is added
+          this.captions.language = track.language;
 
-        // Set caption, but don't store in localStorage as user preference
-        captions.set.call(this, tracks.indexOf(track));
-        return;
+          // Set caption, but don't store in localStorage as user preference
+          captions.set.call(this, tracks.indexOf(track));
+          return;
+        }
+      }
+      if (this.isYouTube) {
+        captions.toggleYouTubeCaptions.bind(this)(active);
       }
 
       // Toggle button if it's enabled
@@ -279,13 +297,15 @@ const captions = {
       triggerEvent.call(this, this.media, active ? 'captionsenabled' : 'captionsdisabled');
     }
 
-    // Wait for the call stack to clear before setting mode='hidden'
-    // on the active track - forcing the browser to download it
-    setTimeout(() => {
-      if (active && this.captions.toggled) {
-        this.captions.currentTrackNode.mode = 'hidden';
-      }
-    });
+    if (this.isHTML5) {
+      // Wait for the call stack to clear before setting mode='hidden'
+      // on the active track - forcing the browser to download it
+      setTimeout(() => {
+        if (active && this.captions.toggled) {
+          this.captions.currentTrackNode.mode = 'hidden';
+        }
+      });
+    }
   },
 
   // Set captions by track index
@@ -470,6 +490,11 @@ const captions = {
       // Trigger event
       triggerEvent.call(this, this.media, 'cuechange');
     }
+  },
+  toggleYouTubeCaptions (active) {
+    const fn = (active ? this.embed.loadModule : this.embed.unloadModule).bind(this.embed);
+    fn('captions');
+    fn('cc');
   },
 };
 
