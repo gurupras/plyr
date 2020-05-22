@@ -156,6 +156,67 @@ const captions = {
     // Enable or disable captions based on track length
     toggleClass(this.elements.container, this.config.classNames.captions.enabled, !is.empty(tracks));
 
+    const { upload } = this.config.captions;
+    if (upload && upload.enabled) {
+      const addTrack = ({ text, label, src, kind = 'captions', srclang = '--', type = 'text/vtt;charset=utf-8' }) => {
+        if (!src) {
+          if (!text) {
+            throw new Error(`Must specify either 'text' or 'src'`);
+          }
+          const blob = new Blob([text], {
+            type,
+          });
+          src = window.URL.createObjectURL(blob); // eslint-disable-line
+        }
+        const track = createElement('track', {
+          src,
+          kind,
+          srclang,
+          label,
+        });
+        this.media.appendChild(track);
+      }
+      const { formats, callback, onInput, onProcessed } = upload;
+      const accept = formats.map(x => `.${x}`).join(',');
+      const parent = this.elements.settings.panels.captions;
+
+      if (!parent.querySelector('#upload-captions')) {
+        const fileInput = createElement('input', {
+          id: 'upload-captions',
+          type: 'file',
+          accept,
+        });
+        fileInput.style.display = 'none';
+        parent.appendChild(fileInput);
+        fileInput.addEventListener('change', e => {
+          const file = e.target.files[0];
+          const { name: label } = file;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const binaryString = reader.result;
+            const text = new TextDecoder().decode(new TextEncoder().encode(binaryString));
+            const hasProcessing = Boolean(onInput) && Boolean(onProcessed);
+            if (callback && Boolean(onInput)) {
+              // We need to trigger this event even if onProcessed is false
+              // since the user may just want to be informed of this event.
+              triggerEvent.call(this, this.media, onInput, true, { label, text, file });
+            }
+            if (!callback || !hasProcessing) {
+              // The user is not processing the file. Just add the track
+              addTrack({ label, text });
+            }
+          };
+          reader.readAsBinaryString(file);
+        });
+        if (onProcessed) {
+          on.call(this, this.media, onProcessed, e => {
+            addTrack(e.detail);
+          });
+        }
+      }
+    }
+
+
     // Update available languages in list
     if (
       is.array(this.config.controls) &&
@@ -236,6 +297,14 @@ const captions = {
     if (index === -1) {
       captions.toggle.call(this, false, passive);
       return;
+    }
+
+    if (this.config.captions.upload && this.config.captions.upload.enabled) {
+      if (index === -2) {
+        // Show the input file dialog allowing the user to pick a file
+        const input = this.elements.settings.panels.captions.querySelector('#upload-captions');
+        input.click();
+      }
     }
 
     if (!is.number(index)) {
