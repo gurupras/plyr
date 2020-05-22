@@ -458,14 +458,14 @@ const controls = {
   },
 
   // Create a settings menu item
-  createMenuItem({ value, list, type, title, badge = null, checked = false }) {
+  createMenuItem({ value, list, type, title, badge = null, checked = false, role = 'menuitemradio' }) {
     const attributes = getAttributesFromSelector(this.config.selectors.inputs[type]);
 
     const menuItem = createElement(
       'button',
       extend(attributes, {
         type: 'button',
-        role: 'menuitemradio',
+        role,
         class: `${this.config.classNames.control} ${attributes.class ? attributes.class : ''}`.trim(),
         'aria-checked': checked,
         value,
@@ -512,10 +512,16 @@ const controls = {
         event.preventDefault();
         event.stopPropagation();
 
+        // Should we navigate back to home after this event?
+        let shouldMenuPanelGoHome = true;
         menuItem.checked = true;
 
         switch (type) {
           case 'language':
+            if (value === -2) {
+              // We're uploading captions. Don't make the menu go back
+              shouldMenuPanelGoHome = false;
+            }
             this.currentTrack = Number(value);
             break;
 
@@ -530,8 +536,9 @@ const controls = {
           default:
             break;
         }
-
-        controls.showMenuPanel.call(this, 'home', is.keyboardEvent(event));
+        if (shouldMenuPanelGoHome) {
+          controls.showMenuPanel.call(this, 'home', is.keyboardEvent(event));
+        }
       },
       type,
       false,
@@ -1000,7 +1007,8 @@ const controls = {
     const type = 'captions';
     const list = this.elements.settings.panels.captions.querySelector('[role="menu"]');
     const tracks = captions.getTracks.call(this);
-    const toggle = Boolean(tracks.length);
+    // We need to show the menu if there are captions or if upload captions is enabled
+    const toggle = Boolean(tracks.length) || (Boolean(this.config.captions.upload) && Boolean(this.config.captions.upload.enabled));
 
     // Toggle the pane and tab
     controls.toggleMenuButton.call(this, type, toggle);
@@ -1034,6 +1042,16 @@ const controls = {
       list,
       type: 'language',
     });
+
+    if (this.config.captions.upload && this.config.captions.upload.enabled) {
+      options.unshift({
+        value: -2,
+        title: 'Upload Captions',
+        list,
+        type: 'language',
+        role: 'button',
+      });
+    }
 
     // Generate options
     options.forEach(controls.createMenuItem.bind(this));
@@ -1275,7 +1293,7 @@ const controls = {
     const defaultAttributes = { class: 'plyr__controls__item' };
 
     // Loop through controls in order
-    dedupe(is.array(this.config.controls) ? this.config.controls: []).forEach(control => {
+    dedupe(is.array(this.config.controls) ? this.config.controls : []).forEach(control => {
       // Restart button
       if (control === 'restart') {
         container.appendChild(createButton.call(this, 'restart', defaultAttributes));
