@@ -188,6 +188,10 @@ const captions = {
           label,
         });
         this.media.appendChild(track);
+        if (!this.isHTML5) {
+          // We need to manually emit the addtrack event
+          triggerEvent.call(this, this.media, 'addtrack', true, { track });
+        }
       }
       const { formats, callback, onInput, onProcessed } = upload;
       const accept = formats.map(x => `.${x}`).join(',');
