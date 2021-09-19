@@ -47,7 +47,7 @@ class Listeners {
     // Seek by the number keys
     const seekByKey = () => {
       // Divide the max duration into 10th's and times by the number value
-      player.currentTime = (player.duration / 10) * (code - 48);
+      player.currentTime = player.duration / 10 * (code - 48);
     };
 
     // Handle the key on keydown
@@ -191,6 +191,7 @@ class Listeners {
 
     // Add touch class
     toggleClass(elements.container, player.config.classNames.isTouch, true);
+    triggerEvent.call(this.player, this.player.elements.container, 'firsttouch', true);
   };
 
   setTabFocus = (event) => {
@@ -697,7 +698,7 @@ class Listeners {
     // Set range input alternative "value", which matches the tooltip time (#954)
     this.bind(elements.inputs.seek, 'mousedown mousemove', (event) => {
       const rect = elements.progress.getBoundingClientRect();
-      const percent = (100 / rect.width) * (event.pageX - rect.left);
+      const percent = 100 / rect.width * (event.pageX - rect.left);
       event.currentTarget.setAttribute('seek-value', percent);
     });
 
@@ -752,7 +753,7 @@ class Listeners {
 
         seek.removeAttribute('seek-value');
 
-        player.currentTime = (seekTo / seek.max) * player.duration;
+        player.currentTime = seekTo / seek.max * player.duration;
       },
       'seek',
     );
