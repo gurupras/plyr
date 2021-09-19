@@ -409,7 +409,10 @@ const vimeo = {
 
     // Rebuild UI
     if (config.customControls) {
-      setTimeout(() => ui.build.call(player), 0);
+      setTimeout(() => {
+        ui.build.call(player);
+        triggerEvent.call(player, player.media, 'embed-ready');
+      }, 0);
     }
   },
 };
