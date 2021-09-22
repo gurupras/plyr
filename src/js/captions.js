@@ -105,10 +105,10 @@ const captions = {
     });
 
     // Watch changes to textTracks and update captions menu
-    if (this.isHTML5) {
-      const trackEvents = this.config.captions.update ? 'addtrack removetrack' : 'removetrack';
-      on.call(this, this.media.textTracks, trackEvents, captions.update.bind(this));
-    }
+    const trackEvents = this.config.captions.update ? 'addtrack removetrack' : 'removetrack';
+    on.call(this, this.isHTML5 ? this.media.textTracks : this.media, trackEvents, () => {
+      captions.update.call(this)
+    });
 
     if (this.isYouTube) {
       // Disable captions here. We will enable them in update if they should be on
@@ -127,7 +127,7 @@ const captions = {
     const languageExists = Boolean(tracks.find((track) => track.language === language));
 
     // Handle tracks (add event listener and "pseudo"-default)
-    if (this.isHTML5 && this.isVideo) {
+    if (tracks.length > 0 && this.isVideo) {
       tracks
         .filter((track) => !meta.get(track))
         .forEach((track) => {
@@ -370,7 +370,7 @@ const captions = {
     // Show captions
     captions.toggle.call(this, true, passive);
 
-    if (this.isHTML5 && this.isVideo) {
+    if (this.isVideo) {
       // If we change the active track while a cue is already displayed we need to update it
       captions.updateCues.call(this);
     }
@@ -398,7 +398,7 @@ const captions = {
   // This is used to "freeze" the language options when captions.update is false
   getTracks(update = false) {
     // Handle media or textTracks missing or null
-    const tracks = Array.from((this.media || {}).textTracks || []);
+    const tracks = Array.from((this.media || {}).textTracks || [...this.media.querySelectorAll('track')].map(t => t.track));
     // For HTML5, use cache instead of current tracks when it exists (if captions.update is false)
     // Filter out removed tracks and tracks that aren't captions/subtitles (for example metadata)
     return tracks
