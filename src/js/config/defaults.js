@@ -287,6 +287,7 @@ const defaults = {
     'controlshidden',
     'controlsshown',
     'ready',
+    'embed-ready',
 
     // YouTube
     'statechange',
