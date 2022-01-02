@@ -341,7 +341,10 @@ const youtube = {
 
           // Rebuild UI
           if (config.customControls) {
-            setTimeout(() => ui.build.call(player), 50);
+            setTimeout(() => {
+              ui.build.call(player);
+              triggerEvent.call(player, player.media, 'embed-ready');
+            }, 50);
           }
         },
         onStateChange(event) {
