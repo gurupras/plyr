@@ -10,3 +10,4 @@ package-lock.json
 *.webm
 *.mp4
 !dist/blank.mp4
+custom-demo
