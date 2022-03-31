@@ -7,3 +7,5 @@ yarn-error.log
 *.webm
 .idea/
 dist/
+custom-demo
+*.tgz
