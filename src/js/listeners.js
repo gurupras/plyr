@@ -47,7 +47,8 @@ class Listeners {
     // Seek by increment
     const seekByIncrement = (increment) => {
       // Divide the max duration into 10th's and times by the number value
-      player.currentTime = (player.duration / 10) * increment;
+      const target = (player.duration / 10) * increment;
+      this.proxy(event, () => { player.currentTime = target }, 'seek');
     };
 
     // Handle the key on keydown
@@ -121,44 +122,50 @@ class Listeners {
         case 'Space':
         case 'k':
           if (!repeat) {
-            silencePromise(player.togglePlay());
+            this.proxy(event, () => silencePromise(player.play()), 'play');
           }
           break;
 
-        case 'ArrowUp':
-          player.increaseVolume(0.1);
+        case 38:
+          // Arrow up
+          this.proxy(event, () => player.increaseVolume(0.1), 'volume')
           break;
 
-        case 'ArrowDown':
-          player.decreaseVolume(0.1);
+        case 40:
+          // Arrow down
+          this.proxy(event, () => player.decreaseVolume(0.1), 'volume')
           break;
 
         case 'm':
           if (!repeat) {
-            player.muted = !player.muted;
+            this.proxy(event, () => { player.muted = !player.muted }, 'mute')
           }
           break;
 
-        case 'ArrowRight':
-          player.forward();
+        case 39:
+          // Arrow forward
+          this.proxy(event, () => player.forward(), 'fastForward')
           break;
 
-        case 'ArrowLeft':
-          player.rewind();
+        case 37:
+          // Arrow back
+          this.proxy(event, () => player.rewind(), 'rewind')
           break;
 
-        case 'f':
-          player.fullscreen.toggle();
+        case 70:
+          // F key
+          this.proxy(event, () => player.fullscreen.toggle(), 'fullscreen');
           break;
 
         case 'c':
           if (!repeat) {
-            player.toggleCaptions();
+            this.proxy(event, () => player.toggleCaptions(), 'captions');
           }
           break;
 
-        case 'l':
-          player.loop = !player.loop;
+        case 76:
+          // L key
+          this.proxy(event, () => { player.loop = !player.loop }, 'loop')
           break;
 
         default:
@@ -167,8 +174,8 @@ class Listeners {
 
       // Escape is handle natively when in full screen
       // So we only need to worry about non native
-      if (key === 'Escape' && !player.fullscreen.usingNative && player.fullscreen.active) {
-        player.fullscreen.toggle();
+      if (code === 27 && !player.fullscreen.usingNative && player.fullscreen.active) {
+        this.proxy(event, () => player.fullscreen.toggle, 'fullscreen')
       }
 
       // Store last key for next cycle
