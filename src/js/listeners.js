@@ -47,7 +47,8 @@ class Listeners {
     // Seek by increment
     const seekByIncrement = (increment) => {
       // Divide the max duration into 10th's and times by the number value
-      player.currentTime = (player.duration / 10) * increment;
+      const target = (player.duration / 10) * increment;
+      this.proxy(event, () => { player.currentTime = target }, 'seek');
     };
 
     // Handle the key on keydown
@@ -121,44 +122,44 @@ class Listeners {
         case 'Space':
         case 'k':
           if (!repeat) {
-            silencePromise(player.togglePlay());
+            this.proxy(event, () => silencePromise(player.play()), 'play');
           }
           break;
 
         case 'ArrowUp':
-          player.increaseVolume(0.1);
+          this.proxy(event, () => player.increaseVolume(0.1), 'volume')
           break;
 
         case 'ArrowDown':
-          player.decreaseVolume(0.1);
+          this.proxy(event, () => player.decreaseVolume(0.1), 'volume')
           break;
 
         case 'm':
           if (!repeat) {
-            player.muted = !player.muted;
+            this.proxy(event, () => { player.muted = !player.muted }, 'mute')
           }
           break;
 
         case 'ArrowRight':
-          player.forward();
+          this.proxy(event, () => player.forward(), 'fastForward')
           break;
 
         case 'ArrowLeft':
-          player.rewind();
+          this.proxy(event, () => player.rewind(), 'rewind')
           break;
 
         case 'f':
-          player.fullscreen.toggle();
+          this.proxy(event, () => player.fullscreen.toggle(), 'fullscreen');
           break;
 
         case 'c':
           if (!repeat) {
-            player.toggleCaptions();
+            this.proxy(event, () => player.toggleCaptions(), 'captions');
           }
           break;
 
         case 'l':
-          player.loop = !player.loop;
+          this.proxy(event, () => { player.loop = !player.loop }, 'loop')
           break;
 
         default:
@@ -168,7 +169,7 @@ class Listeners {
       // Escape is handle natively when in full screen
       // So we only need to worry about non native
       if (key === 'Escape' && !player.fullscreen.usingNative && player.fullscreen.active) {
-        player.fullscreen.toggle();
+        this.proxy(event, () => player.fullscreen.toggle, 'fullscreen')
       }
 
       // Store last key for next cycle
@@ -697,7 +698,7 @@ class Listeners {
     // Set range input alternative "value", which matches the tooltip time (#954)
     this.bind(elements.inputs.seek, 'mousedown mousemove', (event) => {
       const rect = elements.progress.getBoundingClientRect();
-      const percent = 100 / rect.width * (event.pageX - rect.left);
+      const percent = (100 / rect.width) * (event.pageX - rect.left);
       event.currentTarget.setAttribute('seek-value', percent);
     });
 
@@ -751,7 +752,7 @@ class Listeners {
 
         seek.removeAttribute('seek-value');
 
-        player.currentTime = seekTo / seek.max * player.duration;
+        player.currentTime = (seekTo / seek.max) * player.duration;
       },
       'seek',
     );
