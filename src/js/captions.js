@@ -385,7 +385,13 @@ const captions = {
 
     // Set currentTrack
     const tracks = captions.getTracks.call(this);
-    const track = captions.findTrack.call(this, [language]);
+    let track = tracks[this.captions.currentTrack]
+    if (track && track.language !== language) {
+      track = undefined
+    }
+    if (!track) {
+      track = captions.findTrack.call(this, [language]);
+    }
     captions.set.call(this, tracks.indexOf(track), passive);
   },
 
