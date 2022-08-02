@@ -124,7 +124,7 @@ const captions = {
     const tracks = captions.getTracks.call(this, true);
     // Get the wanted language
     const { active, language, meta, currentTrackNode } = this.captions;
-    const languageExists = Boolean(tracks.find((track) => track.language === language));
+    const languageExists = Boolean(tracks.find((track) => (track.language || '').toLowerCase() === language));
 
     // Handle tracks (add event listener and "pseudo"-default)
     if (this.isHTML5 && this.isVideo) {
