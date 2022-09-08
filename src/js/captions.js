@@ -498,9 +498,28 @@ const captions = {
     }
   },
   toggleYouTubeCaptions (active) {
-    const fn = (active ? this.embed.loadModule : this.embed.unloadModule).bind(this.embed);
-    fn('captions');
-    fn('cc');
+    const toggle = () => {
+      const fn = (active ? this.embed.loadModule : this.embed.unloadModule).bind(this.embed);
+      fn('captions');
+      fn('cc');
+    }
+
+    if (!this.embed) {
+      let count = 0
+      const interval = setInterval(() => {
+        count++
+        if (count === 100) {
+          clearInterval(interval)
+          return
+        }
+        if (this.embed && this.embed.loadModule && this.embed.unloadModule) {
+          clearInterval(interval)
+          toggle()
+        }
+      }, 30)
+    } else {
+      toggle()
+    }
   },
 };
 
