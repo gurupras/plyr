@@ -192,7 +192,7 @@ class Listeners {
 
     // Add touch class
     toggleClass(elements.container, player.config.classNames.isTouch, true);
-    riggerEvent.call(this.player, this.player.elements.container, 'firsttouch', true);
+    triggerEvent.call(this.player, this.player.elements.container, 'firsttouch', true);
   };
 
   setTabFocus = (event) => {
