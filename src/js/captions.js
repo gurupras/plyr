@@ -498,10 +498,59 @@ const captions = {
     }
   },
   toggleYouTubeCaptions (active) {
+    // YouTube renders whichever track is SELECTED. loadModule/unloadModule only
+    // add or remove the module and leave the selection untouched, so toggling
+    // through them moves Plyr's state without moving the player's.
+    const remember = () => {
+      try {
+        const current = this.embed.getOption('captions', 'track');
+        if (current && current.languageCode) {
+          this.captions.youTubeTrack = current;
+        }
+      } catch (e) {}
+    }
+
+    const pick = () => {
+      // `tracklist` is empty on videos whose only track is auto-generated, so
+      // the track that was showing before we cleared it is the better source.
+      if (this.captions.youTubeTrack) {
+        return this.captions.youTubeTrack;
+      }
+      const tracks = this.embed.getOption('captions', 'tracklist') || [];
+      if (!tracks.length) {
+        return null;
+      }
+      const wanted = (this.captions.language || 'en').toLowerCase();
+      const base = wanted.split('-')[0];
+      return tracks.find(t => (t.languageCode || '').toLowerCase() === wanted)
+        || tracks.find(t => (t.languageCode || '').toLowerCase().split('-')[0] === base)
+        || tracks[0];
+    }
+
+    const enable = (attempt = 0) => {
+      const track = pick();
+      if (!track) {
+        if (attempt < 20) {
+          setTimeout(() => enable(attempt + 1), 150);
+        }
+        return;
+      }
+      this.embed.setOption('captions', 'track', track);
+    }
+
     const toggle = () => {
-      const fn = (active ? this.embed.loadModule : this.embed.unloadModule).bind(this.embed);
-      fn('captions');
-      fn('cc');
+      if (typeof this.embed.setOption !== 'function') {
+        return;
+      }
+      if (!(this.embed.getOptions() || []).includes('captions')) {
+        this.embed.loadModule('captions');
+      }
+      if (active) {
+        enable();
+        return;
+      }
+      remember();
+      this.embed.setOption('captions', 'track', {});
     }
 
     if (!this.embed) {
@@ -512,7 +561,7 @@ const captions = {
           clearInterval(interval)
           return
         }
-        if (this.embed && this.embed.loadModule && this.embed.unloadModule) {
+        if (this.embed && this.embed.setOption && this.embed.getOption) {
           clearInterval(interval)
           toggle()
         }
